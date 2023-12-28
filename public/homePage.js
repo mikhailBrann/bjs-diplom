@@ -59,48 +59,72 @@ updateRateBoardView(currencyRateBoard, 60000);
 
 /*MoneyManager start*/
 const moneyManager = new MoneyManager();
+const updateMoneyManager = (response, message='') => {
+    if(!response.success) {
+        moneyManager.setMessage(response.success, response.error);
+        return;
+    }
 
+    ProfileWidget.showProfile(response.data);
+    moneyManager.setMessage(response.success, message);
+};
+
+moneyManager.addMoneyCallback = (...args) => {
+    ApiConnector.addMoney(...args, (response) => {
+        updateMoneyManager(
+            response,
+            `Кошелек успешно пополнен на ${args[0].amount} ${args[0].currency}`
+        );
+    });
+};
+
+moneyManager.conversionMoneyCallback = (...args) => {
+    ApiConnector.convertMoney(...args, (response) => {
+        updateMoneyManager(
+            response,
+            `Успешная конвертация из ${args[0].fromCurrency} в ${args[0].targetCurrency}`
+        );
+    });
+};
+
+moneyManager.sendMoneyCallback = (...args) => {
+    ApiConnector.transferMoney(...args, (response) => {
+        updateMoneyManager(
+            response,
+            `Успешно переведено ${args[0].amount} ${args[0].currency} пользователю из Адресной книги(ID:${args[0].to})`
+        );
+    });
+};
 /*MoneyManager end*/
 
 /*favorites start*/
 const favorites = new FavoritesWidget();
-const getFavorites = (data)=> {
+const getFavorites = (response, message='')=> {
+    if(!response.success) {
+        favorites.setMessage(response.success, response.error);
+        return;
+    }
+
     favorites.clearTable();
-    favorites.fillTable(data);
-    moneyManager.updateUsersList(data);
+    favorites.fillTable(response.data);
+    moneyManager.updateUsersList(response.data);
+    favorites.setMessage(response.success, message);
 };
 
 favorites.addUserCallback = (...args) => {
     ApiConnector.addUserToFavorites(...args, (response) => {
-        if(!response.success) {
-            favorites.setMessage(response.success, response.error);
-            return response.error;
-        }
-
-        favorites.setMessage(response.success, `Пользователь c ID:${args[0].id} добавлен в книгу`);
-        getFavorites(response.data);
+        getFavorites(response, `Пользователь c ID:${args[0].id} добавлен в книгу`);
     });
 };
 
 favorites.removeUserCallback = (id) => {
     ApiConnector.removeUserFromFavorites(id, (response) => {
-        if(!response.success) {
-            favorites.setMessage(response.success, response.error);
-            return response.error;
-        }
-
-        favorites.setMessage(response.success, `Пользователь c ID:${id} удален из книги`);
-        getFavorites(response.data);
+        getFavorites(response, `Пользователь c ID:${id} удален из книги`);
     });
 };
 
 //запрос списка при загрузке страницы
 ApiConnector.getFavorites((response) => {
-    if(!response.success) {
-        favorites.setMessage(response.success, response.error);
-        return response.error;
-    }
-
-    getFavorites(response.data);
+    getFavorites(response);
 });
 /*favorites start*/
